@@ -1,13 +1,13 @@
 pipeline {
     agent any
-    
+
     environment {
         DOCKER_IMAGE = 'todo-app'
         DOCKER_TAG = "${BUILD_NUMBER}"
         GITHUB_REPO = 'your-username/todo-app'
         GITHUB_REGISTRY = 'ghcr.io'
     }
-    
+
     stages {
         stage('Checkout') {
             steps {
@@ -16,24 +16,24 @@ pipeline {
             }
         }
 
-        stage('Install Composer') {
-            steps {
-                sh '''
-                    php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-                    php composer-setup.php --install-dir=/usr/local/bin --filename=composer
-                    rm composer-setup.php
-                '''
-            }
-        }
-        
         stage('Install Dependencies') {
+            agent {
+                docker {
+                    image 'composer:2'
+                }
+            }
             steps {
                 echo 'Installation des dépendances...'
                 sh 'composer install'
             }
         }
-        
+
         stage('Run Tests') {
+            agent {
+                docker {
+                    image 'composer:2'
+                }
+            }
             steps {
                 echo 'Exécution des tests...'
                 sh 'vendor/bin/phpunit --log-junit tests/results/junit.xml'
@@ -44,7 +44,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Build Docker Image') {
             steps {
                 echo 'Construction de l\'image Docker...'
@@ -53,7 +53,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Tag Repository') {
             steps {
                 echo 'Tagging du repository...'
@@ -63,7 +63,7 @@ pipeline {
                 """
             }
         }
-        
+
         stage('Push to GitHub Packages') {
             steps {
                 echo 'Push vers GitHub Packages...'
@@ -75,7 +75,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Deploy') {
             steps {
                 echo 'Déploiement de l\'application...'
@@ -87,7 +87,7 @@ pipeline {
             }
         }
     }
-    
+
     post {
         always {
             echo 'Nettoyage...'
