@@ -69,7 +69,7 @@ pipeline {
                         . || echo "Archive créée avec warnings"
                 '''
                 archiveArtifacts artifacts: 'todo-app-*.tar.gz'
-                echo "✅ Package créé : todo-app-${BUILD_NUMBER}.tar.gz"
+                echo "Package créé : todo-app-${BUILD_NUMBER}.tar.gz"
             }
         }
         
@@ -109,8 +109,8 @@ pipeline {
             steps {
                 echo 'Archive du package dans Jenkins...'
                 script {
-                    echo "✅ Package todo-app-${BUILD_NUMBER}.tar.gz archivé dans Jenkins"
-                    echo "📦 Vous pouvez télécharger le package depuis l'interface Jenkins"
+                    echo "Package todo-app-${BUILD_NUMBER}.tar.gz archivé dans Jenkins"
+                    echo "Vous pouvez télécharger le package depuis l'interface Jenkins"
                 }
             }
         }
@@ -154,12 +154,12 @@ pipeline {
     
     post {
         success {
-            echo "✅ Build ${BUILD_NUMBER} terminé avec succès!"
-            echo "📦 Package disponible : todo-app-${BUILD_NUMBER}.tar.gz"
-            echo "🏷️  Tag repository : v${BUILD_NUMBER}"
+            echo "Build ${BUILD_NUMBER} terminé avec succès!"
+            echo "Package disponible : todo-app-${BUILD_NUMBER}.tar.gz"
+            echo "Tag repository : v${BUILD_NUMBER}"
         }
         failure {
-            echo "❌ Build ${BUILD_NUMBER} a échoué!"
+            echo "Build ${BUILD_NUMBER} a échoué!"
         }
         always {
             echo "🧹 Nettoyage terminé"
