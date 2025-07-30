@@ -9,9 +9,9 @@ pipeline {
             }
         }
         
-        stage('Verify PHP Installation') {
+        stage('Verify Environment') {
             steps {
-                echo 'Vérification de PHP et Composer...'
+                echo 'Vérification de l\'environnement...'
                 sh 'php --version'
                 sh 'composer --version'
             }
@@ -19,66 +19,35 @@ pipeline {
         
         stage('Install Dependencies') {
             steps {
-                echo 'Installation des dépendances PHP...'
+                echo 'Installation des dépendances...'
                 sh '''
-                    # Nettoyer l'ancien lock file incompatible
                     rm -f composer.lock
                     rm -rf vendor/
-                    
-                    # Installer avec les bonnes versions
-                    composer install --optimize-autoloader
+                    composer install
                 '''
             }
         }
         
         stage('Run Tests') {
             steps {
-                echo 'Exécution des tests PHPUnit...'
+                echo 'Exécution des tests...'
                 sh '''
                     mkdir -p tests/results
-                    # Exécuter les tests avec le script Composer
-                    composer run-script test-ci || true
+                    vendor/bin/phpunit --log-junit tests/results/junit.xml --testdox
                 '''
             }
             post {
                 always {
-                    // Publier les résultats des tests
-                    publishTestResults testResultsPattern: 'tests/results/junit.xml'
-                    
-                    // Afficher le contenu du rapport pour debug
                     script {
                         if (fileExists('tests/results/junit.xml')) {
-                            echo "✅ Rapport de tests généré"
-                            sh 'cat tests/results/junit.xml'
+                            // Utiliser junit au lieu de publishTestResults
+                            junit 'tests/results/junit.xml'
+                            echo "✅ Tests publiés dans Jenkins"
                         } else {
-                            echo "❌ Aucun rapport de tests trouvé"
+                            echo "❌ Fichier de résultats introuvable"
+                            sh 'ls -la tests/ || echo "Dossier tests absent"'
                         }
                     }
-                }
-            }
-        }
-        
-        stage('Build for Production') {
-            steps {
-                echo 'Préparation pour la production...'
-                sh '''
-                    # Réinstaller sans les dépendances de dev
-                    composer install --no-dev --optimize-autoloader
-                    
-                    # Nettoyer les fichiers de développement
-                    rm -rf tests/
-                    rm -f phpunit.xml
-                    rm -f TodoAppTest.php
-                '''
-            }
-        }
-        
-        stage('Create Docker Image') {
-            steps {
-                echo 'Création de l\'image Docker...'
-                script {
-                    def image = docker.build("todo-app:${BUILD_NUMBER}")
-                    echo "Image Docker créée: ${image.id}"
                 }
             }
         }
@@ -87,45 +56,30 @@ pipeline {
             steps {
                 echo 'Création du package...'
                 sh '''
-                    tar -czf todo-app-${BUILD_NUMBER}.tar.gz --exclude=.git .
-                    ls -la todo-app-${BUILD_NUMBER}.tar.gz
+                    # Réinstaller sans les dépendances de dev
+                    composer install --no-dev --optimize-autoloader
+                    
+                    # Créer le package
+                    tar -czf todo-app-${BUILD_NUMBER}.tar.gz \
+                        --exclude=tests \
+                        --exclude=.git \
+                        --exclude=composer.lock \
+                        .
                 '''
-                archiveArtifacts artifacts: 'todo-app-*.tar.gz', fingerprint: true
-            }
-        }
-        
-        stage('Tag Repository') {
-            steps {
-                echo 'Tagging du repository...'
-                script {
-                    try {
-                        sh """
-                            git config user.email "jenkins@example.com"
-                            git config user.name "Jenkins"
-                            git tag -a v${BUILD_NUMBER} -m "Build version ${BUILD_NUMBER} - Tests passed"
-                            git push origin v${BUILD_NUMBER}
-                        """
-                    } catch (Exception e) {
-                        echo "Tag ignoré: ${e.getMessage()}"
-                    }
-                }
+                archiveArtifacts artifacts: 'todo-app-*.tar.gz'
             }
         }
     }
     
     post {
-        always {
-            // Nettoyage
-            sh 'docker system prune -f || true'
-        }
         success {
-            echo "✅ Build ${BUILD_NUMBER} réussi!"
-            echo "📦 Package: todo-app-${BUILD_NUMBER}.tar.gz"
-            echo "🐳 Image Docker: todo-app:${BUILD_NUMBER}"
+            echo "✅ Build ${BUILD_NUMBER} terminé avec succès!"
         }
         failure {
-            echo "❌ Build ${BUILD_NUMBER} échoué!"
-            echo "Vérifiez les logs des tests ci-dessus."
+            echo "❌ Build ${BUILD_NUMBER} a échoué!"
+        }
+        always {
+            echo "🧹 Nettoyage..."
         }
     }
 }
