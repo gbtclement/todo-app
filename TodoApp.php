@@ -12,7 +12,7 @@ class TodoApp
         }
 
         $todo = [
-            'id' => $this->nextId++,
+            // 'id' => $this->nextId++,
             'title' => trim($title),
             'completed' => false,
             'created_at' => date('Y-m-d H:i:s')
