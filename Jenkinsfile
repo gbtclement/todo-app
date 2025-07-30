@@ -1,5 +1,10 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'php:8.1-cli'
+            args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker'
+        }
+    }
     
     environment {
         DOCKER_IMAGE = 'todo-app'
@@ -18,24 +23,12 @@ pipeline {
 
         stage('Install Composer') {
             steps {
-                script {
-                    // Vérifier si composer est déjà installé
-                    def composerExists = sh(
-                        script: 'which composer',
-                        returnStatus: true
-                    ) == 0
-                    
-                    if (!composerExists) {
-                        echo 'Installation de Composer...'
-                        sh '''
-                            php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-                            php composer-setup.php --install-dir=/usr/local/bin --filename=composer
-                            rm composer-setup.php
-                        '''
-                    } else {
-                        echo 'Composer déjà installé'
-                    }
-                }
+                echo 'Installation de Composer...'
+                sh '''
+                    php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+                    php composer-setup.php --install-dir=/usr/local/bin --filename=composer
+                    rm composer-setup.php
+                '''
             }
         }
         
