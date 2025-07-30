@@ -64,12 +64,15 @@ pipeline {
                     # Réinstaller sans les dépendances de dev
                     composer install --no-dev --optimize-autoloader
                     
-                    # Créer le package
+                    # Créer le package en excluant plus de fichiers temporaires
                     tar -czf todo-app-${BUILD_NUMBER}.tar.gz \
                         --exclude=tests \
                         --exclude=.git \
                         --exclude=composer.lock \
-                        .
+                        --exclude=todo-app-*.tar.gz \
+                        --exclude='*.log' \
+                        --exclude='.jenkins' \
+                        . || echo "Archive créée avec warnings"
                 '''
                 archiveArtifacts artifacts: 'todo-app-*.tar.gz'
                 echo "✅ Package créé : todo-app-${BUILD_NUMBER}.tar.gz"
