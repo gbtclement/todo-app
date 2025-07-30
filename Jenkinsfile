@@ -20,8 +20,14 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 echo 'Installation des dépendances PHP...'
-                // Installer avec les dépendances de dev pour les tests
-                sh 'composer install --optimize-autoloader'
+                sh '''
+                    # Nettoyer l'ancien lock file incompatible
+                    rm -f composer.lock
+                    rm -rf vendor/
+                    
+                    # Installer avec les bonnes versions
+                    composer install --optimize-autoloader
+                '''
             }
         }
         
