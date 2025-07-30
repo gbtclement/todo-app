@@ -16,25 +16,34 @@ pipeline {
             }
         }
         
-        stage('Install Dependencies & Run Tests') {
-            agent {
-                docker {
-                    image 'php:8.1-cli'
-                    reuseNode true
-                }
-            }
+        stage('Install PHP & Composer') {
             steps {
-                echo 'Installation de Composer...'
+                echo 'Installation de PHP et Composer...'
                 sh '''
-                    php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+                    # Mise à jour des paquets
+                    apt-get update
+                    
+                    # Installation de PHP et extensions nécessaires
+                    apt-get install -y php php-cli php-mbstring php-xml php-zip unzip wget
+                    
+                    # Installation de Composer
+                    wget -O composer-setup.php https://getcomposer.org/installer
                     php composer-setup.php --install-dir=/usr/local/bin --filename=composer
                     rm composer-setup.php
                 '''
-                
-                echo 'Installation des dépendances...'
+            }
+        }
+        
+        stage('Install Dependencies') {
+            steps {
+                echo 'Installation des dépendances PHP...'
                 sh 'composer install --no-dev --optimize-autoloader'
-                
-                echo 'Exécution des tests...'
+            }
+        }
+        
+        stage('Run Tests') {
+            steps {
+                echo 'Exécution des tests PHPUnit...'
                 sh '''
                     mkdir -p tests/results
                     vendor/bin/phpunit --log-junit tests/results/junit.xml || echo "Tests completed"
@@ -51,13 +60,17 @@ pipeline {
             }
         }
         
-        stage('Build Docker Image') {
+        stage('Create Archive') {
             steps {
-                echo 'Construction de l\'image Docker...'
-                script {
-                    dockerImage = docker.build("${GITHUB_REGISTRY}/${GITHUB_REPO}:${DOCKER_TAG}")
-                    dockerImage.tag("latest")
-                }
+                echo 'Création de l\'archive du projet...'
+                sh '''
+                    # Créer une archive avec le code compilé
+                    tar -czf todo-app-${BUILD_NUMBER}.tar.gz --exclude=tests --exclude=.git .
+                    ls -la todo-app-${BUILD_NUMBER}.tar.gz
+                '''
+                
+                // Archiver l'artefact dans Jenkins
+                archiveArtifacts artifacts: 'todo-app-*.tar.gz', fingerprint: true
             }
         }
         
@@ -80,37 +93,26 @@ pipeline {
             }
         }
         
-        stage('Push to GitHub Packages') {
-            steps {
-                echo 'Push vers GitHub Packages...'
-                script {
-                    docker.withRegistry("https://${GITHUB_REGISTRY}", 'github-token') {
-                        dockerImage.push("${DOCKER_TAG}")
-                        dockerImage.push("latest")
-                    }
-                }
-            }
-        }
-        
         stage('Deploy') {
             steps {
-                echo 'Déploiement de l\'application...'
-                sh """
-                    docker stop todo-app-container || true
-                    docker rm todo-app-container || true
-                    docker run -d --name todo-app-container -p 8080:80 ${GITHUB_REGISTRY}/${GITHUB_REPO}:${DOCKER_TAG}
-                """
+                echo 'Simulation du déploiement...'
+                sh '''
+                    echo "Déploiement de la version ${BUILD_NUMBER}"
+                    echo "Archive disponible: todo-app-${BUILD_NUMBER}.tar.gz"
+                    echo "Application prête à être déployée!"
+                '''
             }
         }
     }
     
     post {
         always {
-            echo 'Nettoyage...'
-            sh 'docker system prune -f || echo "Docker cleanup failed"'
+            echo 'Nettoyage des fichiers temporaires...'
+            sh 'rm -f composer-setup.php || true'
         }
         success {
             echo 'Pipeline exécuté avec succès!'
+            echo "Version ${BUILD_NUMBER} construite et testée"
         }
         failure {
             echo 'Échec du pipeline!'
