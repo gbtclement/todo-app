@@ -2,15 +2,7 @@ pipeline {
     agent any
     
     stages {
-        stage('Checkout') {
-            steps {
-                echo 'Téléchargement du repository...'
-                checkout scm
-            }
-        }
-        
 
-        
         stage('Run Tests') {
             steps {
                 echo 'Exécution des tests...'
@@ -33,23 +25,7 @@ pipeline {
             }
         }
         
-        stage('Create Package') {
-            steps {
-                echo 'Création du package...'
-                sh '''
-                    # Réinstaller sans les dépendances de dev
-                    composer install --no-dev --optimize-autoloader
-                    
-                    # Créer le package
-                    tar -czf todo-app-${BUILD_NUMBER}.tar.gz \
-                        --exclude=tests \
-                        --exclude=.git \
-                        --exclude=composer.lock \
-                        .
-                '''
-                archiveArtifacts artifacts: 'todo-app-*.tar.gz'
-            }
-        }
+
     }
     
     post {
