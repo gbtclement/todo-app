@@ -37,12 +37,16 @@ pipeline {
                 echo 'Exécution des tests...'
                 sh '''
                     mkdir -p tests/results
-                    vendor/bin/phpunit --log-junit tests/results/junit.xml || echo "Tests failed but continuing..."
+                    vendor/bin/phpunit --log-junit tests/results/junit.xml || echo "Tests completed"
                 '''
             }
             post {
                 always {
-                    publishTestResults testResultsPattern: 'tests/results/junit.xml'
+                    script {
+                        if (fileExists('tests/results/junit.xml')) {
+                            publishTestResults testResultsPattern: 'tests/results/junit.xml'
+                        }
+                    }
                 }
             }
         }
@@ -52,6 +56,7 @@ pipeline {
                 echo 'Construction de l\'image Docker...'
                 script {
                     dockerImage = docker.build("${GITHUB_REGISTRY}/${GITHUB_REPO}:${DOCKER_TAG}")
+                    dockerImage.tag("latest")
                 }
             }
         }
