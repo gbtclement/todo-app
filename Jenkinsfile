@@ -9,24 +9,7 @@ pipeline {
             }
         }
         
-        stage('Verify Environment') {
-            steps {
-                echo 'Vérification de l\'environnement...'
-                sh 'php --version'
-                sh 'composer --version'
-            }
-        }
-        
-        stage('Install Dependencies') {
-            steps {
-                echo 'Installation des dépendances...'
-                sh '''
-                    rm -f composer.lock
-                    rm -rf vendor/
-                    composer install
-                '''
-            }
-        }
+
         
         stage('Run Tests') {
             steps {
