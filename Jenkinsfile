@@ -93,8 +93,8 @@ pipeline {
                     
                     if (!tagExists) {
                         sh """
-                            git config user.email "jenkins@example.com"
-                            git config user.name "Jenkins CI"
+                            git config user.email "clementgaubert44@gmail.com"
+                            git config user.name "gbtclement"
                             git tag -a ${tagName} -m "Release version ${BUILD_NUMBER} - Build by Jenkins"
                             echo "Tag ${tagName} créé localement"
                         """
