@@ -128,25 +128,23 @@ pipeline {
                         curl -s -X POST https://api.github.com/repos/gbtclement/todo-app/releases \\
                             -H "Authorization: token ${GITHUB_TOKEN}" \\
                             -H "Content-Type: application/json" \\
-                            -d '{
-                                "tag_name": "${TAG_NAME}",
-                                "name": "${TAG_NAME}",
-                                "body": "Release auto Jenkins",
-                                "draft": false,
-                                "prerelease": false
+                            -d '{ 
+                                "tag_name": "${TAG_NAME}", 
+                                "name": "${TAG_NAME}", 
+                                "body": "Release auto Jenkins", 
+                                "draft": false, 
+                                "prerelease": false 
                             }' || echo "Release déjà existante"
 
-                        # Récupérer l'ID de la release
-                        RELEASE_ID=$(curl -s -H "Authorization: token ${GITHUB_TOKEN}" https://api.github.com/repos/gbtclement/todo-app/releases/tags/${TAG_NAME} | grep '"id":' | head -n 1 | awk '{print \$2}' | tr -d ',')
+                        RELEASE_ID=\$(curl -s -H "Authorization: token ${GITHUB_TOKEN}" https://api.github.com/repos/gbtclement/todo-app/releases/tags/${TAG_NAME} | grep '"id":' | head -n 1 | awk '{print \$2}' | tr -d ',')
 
                         echo "Release ID = \$RELEASE_ID"
 
-                        # Envoyer l'archive dans la release
                         curl -s -X POST \\
                             -H "Authorization: token ${GITHUB_TOKEN}" \\
                             -H "Content-Type: application/gzip" \\
                             --data-binary @${FILE_NAME} \\
-                            "https://uploads.github.com/repos/gbtclement/todo-app/releases/\$RELEASE_ID/assets?name=${FILE_NAME}" || echo "Erreur d'upload"
+                            "https://uploads.github.com/repos/gbtclement/todo-app/releases/\${RELEASE_ID}/assets?name=${FILE_NAME}" || echo "Erreur d'upload"
                     """
                 }
             }
