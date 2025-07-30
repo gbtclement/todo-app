@@ -12,7 +12,7 @@ class TodoApp
         }
 
         $todo = [
-            // 'id' => $this->nextId++,
+            'id' => $this->nextId++,
             'title' => trim($title),
             'completed' => false,
             'created_at' => date('Y-m-d H:i:s')
@@ -41,7 +41,7 @@ class TodoApp
     {
         foreach ($this->todos as &$todo) {
             if ($todo['id'] === $id) {
-                $todo['completed'] = true;
+                $todo['completed'] = false;
                 return true;
             }
         }
