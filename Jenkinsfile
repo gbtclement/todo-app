@@ -9,25 +9,24 @@ pipeline {
             }
         }
         
-        stage('Build & Test') {
-            agent {
-                docker {
-                    image 'php:8.1-cli'
-                    reuseNode true
-                }
-            }
+        stage('Verify PHP Installation') {
             steps {
-                echo 'Installation de Composer...'
-                sh '''
-                    php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-                    php composer-setup.php --install-dir=/usr/local/bin --filename=composer
-                    rm composer-setup.php
-                '''
-                
-                echo 'Installation des dépendances...'
-                sh 'composer install'
-                
-                echo 'Exécution des tests...'
+                echo 'Vérification de PHP et Composer...'
+                sh 'php --version'
+                sh 'composer --version'
+            }
+        }
+        
+        stage('Install Dependencies') {
+            steps {
+                echo 'Installation des dépendances PHP...'
+                sh 'composer install --no-dev --optimize-autoloader'
+            }
+        }
+        
+        stage('Run Tests') {
+            steps {
+                echo 'Exécution des tests PHPUnit...'
                 sh '''
                     mkdir -p tests/results
                     vendor/bin/phpunit --log-junit tests/results/junit.xml || echo "Tests completed"
@@ -48,11 +47,9 @@ pipeline {
             steps {
                 echo 'Création du package...'
                 sh '''
-                    # Créer une archive avec le code
-                    tar -czf todo-app-${BUILD_NUMBER}.tar.gz --exclude=tests --exclude=.git --exclude=vendor .
+                    tar -czf todo-app-${BUILD_NUMBER}.tar.gz --exclude=tests --exclude=.git .
                     ls -la todo-app-${BUILD_NUMBER}.tar.gz
                 '''
-                
                 archiveArtifacts artifacts: 'todo-app-*.tar.gz', fingerprint: true
             }
         }
@@ -69,8 +66,7 @@ pipeline {
                             git push origin v${BUILD_NUMBER}
                         """
                     } catch (Exception e) {
-                        echo "Erreur lors du tagging: ${e.getMessage()}"
-                        echo "Tag ignoré pour cette fois"
+                        echo "Tag ignoré: ${e.getMessage()}"
                     }
                 }
             }
@@ -80,7 +76,7 @@ pipeline {
     post {
         success {
             echo "✅ Build ${BUILD_NUMBER} réussi!"
-            echo "Package créé: todo-app-${BUILD_NUMBER}.tar.gz"
+            echo "📦 Package: todo-app-${BUILD_NUMBER}.tar.gz"
         }
         failure {
             echo "❌ Build ${BUILD_NUMBER} échoué!"
