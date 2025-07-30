@@ -1,12 +1,6 @@
 pipeline {
     agent any
     
-    environment {
-        DOCKER_IMAGE = "todo-app"
-        GITHUB_REPO = "votre-username/votre-repo" // À modifier avec vos informations
-        DOCKER_REGISTRY = "ghcr.io" // GitHub Container Registry
-    }
-    
     stages {
         stage('Checkout') {
             steps {
@@ -48,9 +42,9 @@ pipeline {
                     script {
                         if (fileExists('tests/results/junit.xml')) {
                             junit 'tests/results/junit.xml'
-                            echo "✅ Tests publiés dans Jenkins - Consultez l'onglet 'Test Results'"
+                            echo "Tests publiés avec succès"
                         } else {
-                            echo "❌ Fichier de résultats introuvable"
+                            echo "Fichier de résultats introuvable"
                         }
                     }
                 }
@@ -102,7 +96,7 @@ pipeline {
                         // Push du tag vers le repository (nécessite des credentials configurés)
                         withCredentials([gitUsernamePassword(credentialsId: 'github-credentials', gitToolName: 'Default')]) {
                             sh "git push origin ${tagName}"
-                            echo "✅ Tag ${tagName} poussé vers le repository"
+                            echo "Tag ${tagName} poussé vers le repository"
                         }
                     } else {
                         echo "Tag ${tagName} existe déjà, saut de cette étape"
