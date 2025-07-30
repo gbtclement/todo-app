@@ -124,7 +124,7 @@ pipeline {
                 echo "📤 Publication du package sur GitHub..."
                 withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
                     sh """
-                        # Créer la release (si elle n'existe pas déjà)
+                        # Créer la release (si elle existe pas déjà)
                         curl -s -X POST https://api.github.com/repos/gbtclement/todo-app/releases \\
                             -H "Authorization: token ${GITHUB_TOKEN}" \\
                             -H "Content-Type: application/json" \\
