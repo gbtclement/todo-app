@@ -6,6 +6,11 @@ pipeline {
         }
     }
     
+    // Jenkins vérifie GitHub toutes les 2 minutes
+    triggers {
+        pollSCM('H/2 * * * *')
+    }
+    
     environment {
         GIT_CREDENTIALS = credentials('github-credentials')
     }
@@ -78,11 +83,9 @@ pipeline {
                     git config user.email "clementgaubert44@gmail.com"
                     git config user.name "Jenkins CI"
                     
-                    # Récupérer le SHA actuel
                     COMMIT_SHA=$(git rev-parse HEAD)
                     echo "Commit à pusher: $COMMIT_SHA"
                     
-                    # Push vers main
                     git push https://${GIT_CREDENTIALS_USR}:${GIT_CREDENTIALS_PSW}@github.com/gbtclement/todo-app.git HEAD:refs/heads/main
                     
                     echo "✅ Code validé et poussé sur main avec succès !"
