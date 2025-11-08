@@ -1,6 +1,7 @@
 <?php
 require_once 'TodoApp.php';
 
+
 session_start();
 
 // Initialiser l'app si elle n'existe pas en session
