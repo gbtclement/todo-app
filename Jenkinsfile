@@ -1,12 +1,6 @@
 pipeline {
-    agent {
-        docker {
-            image 'php:8.2-cli'
-            args '-u root:root'
-        }
-    }
+    agent any
     
-    // Jenkins vérifie GitHub toutes les 2 minutes
     triggers {
         pollSCM('H/2 * * * *')
     }
@@ -23,25 +17,12 @@ pipeline {
             }
         }
         
-        stage('Setup') {
-            steps {
-                echo '🔧 Installation des outils...'
-                sh '''
-                    apt-get update -qq && apt-get install -y -qq git curl unzip
-                    curl -sS https://getcomposer.org/installer | php
-                    mv composer.phar /usr/local/bin/composer
-                    chmod +x /usr/local/bin/composer
-                '''
-            }
-        }
-        
         stage('Verify Environment') {
             steps {
                 echo '🔍 Vérification de l\'environnement...'
                 sh '''
                     php --version
                     composer --version
-                    git --version
                 '''
             }
         }
@@ -49,13 +30,17 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 echo '📦 Installation des dépendances...'
-                sh 'composer install --no-interaction --prefer-dist'
+                sh '''
+                    rm -f composer.lock
+                    rm -rf vendor/
+                    composer install
+                '''
             }
         }
         
         stage('Run Tests') {
             steps {
-                echo '🧪 Exécution des tests unitaires...'
+                echo '🧪 Exécution des tests...'
                 sh '''
                     mkdir -p tests/results
                     vendor/bin/phpunit --log-junit tests/results/junit.xml --testdox
@@ -78,17 +63,12 @@ pipeline {
                 }
             }
             steps {
-                echo '🚀 Tests OK ! Push du code vers main...'
+                echo '🚀 Tests OK ! Push vers main...'
                 sh '''
                     git config user.email "clementgaubert44@gmail.com"
                     git config user.name "Jenkins CI"
-                    
-                    COMMIT_SHA=$(git rev-parse HEAD)
-                    echo "Commit à pusher: $COMMIT_SHA"
-                    
                     git push https://${GIT_CREDENTIALS_USR}:${GIT_CREDENTIALS_PSW}@github.com/gbtclement/todo-app.git HEAD:refs/heads/main
-                    
-                    echo "✅ Code validé et poussé sur main avec succès !"
+                    echo "✅ Code poussé sur main avec succès !"
                 '''
             }
         }
