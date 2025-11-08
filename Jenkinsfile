@@ -1,15 +1,32 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'php:8.2-cli'
+            args '-u root:root'
+        }
+    }
     
     environment {
-        GIT_CREDENTIALS = credentials('github-credentials') // Ton ID de credentials Jenkins
+        GIT_CREDENTIALS = credentials('github-credentials')
     }
     
     stages {
         stage('Checkout') {
             steps {
-                echo '📥 Récupération du code source...'
+                echo '📥 Récupération du code depuis pending...'
                 checkout scm
+            }
+        }
+        
+        stage('Setup') {
+            steps {
+                echo '🔧 Installation des outils...'
+                sh '''
+                    apt-get update -qq && apt-get install -y -qq git curl unzip
+                    curl -sS https://getcomposer.org/installer | php
+                    mv composer.phar /usr/local/bin/composer
+                    chmod +x /usr/local/bin/composer
+                '''
             }
         }
         
@@ -19,6 +36,7 @@ pipeline {
                 sh '''
                     php --version
                     composer --version
+                    git --version
                 '''
             }
         }
@@ -26,11 +44,7 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 echo '📦 Installation des dépendances...'
-                sh '''
-                    rm -f composer.lock
-                    rm -rf vendor/
-                    composer install
-                '''
+                sh 'composer install --no-interaction --prefer-dist'
             }
         }
         
@@ -49,27 +63,29 @@ pipeline {
             }
         }
         
-        stage('Push to Git') {
+        stage('Push to Main') {
             when {
-                expression {
-                    currentBuild.result == null || currentBuild.result == 'SUCCESS'
+                allOf {
+                    branch 'pending'
+                    expression {
+                        currentBuild.result == null || currentBuild.result == 'SUCCESS'
+                    }
                 }
             }
             steps {
-                echo '🚀 Push du code vers GitHub...'
+                echo '🚀 Tests OK ! Push du code vers main...'
                 sh '''
                     git config user.email "clementgaubert44@gmail.com"
                     git config user.name "Jenkins CI"
                     
-                    # Vérifier s'il y a des changements à commiter
-                    if [ -n "$(git status --porcelain)" ]; then
-                        git add .
-                        git commit -m "✅ Tests passed - Jenkins auto-commit [Build #${BUILD_NUMBER}]"
-                        git push https://${GIT_CREDENTIALS_USR}:${GIT_CREDENTIALS_PSW}@github.com/gbtclement/todo-app.git HEAD:main
-                        echo "✅ Code poussé avec succès"
-                    else
-                        echo "ℹ️ Aucun changement à commiter"
-                    fi
+                    # Récupérer le SHA actuel
+                    COMMIT_SHA=$(git rev-parse HEAD)
+                    echo "Commit à pusher: $COMMIT_SHA"
+                    
+                    # Push vers main
+                    git push https://${GIT_CREDENTIALS_USR}:${GIT_CREDENTIALS_PSW}@github.com/gbtclement/todo-app.git HEAD:refs/heads/main
+                    
+                    echo "✅ Code validé et poussé sur main avec succès !"
                 '''
             }
         }
@@ -77,13 +93,13 @@ pipeline {
     
     post {
         success {
-            echo '✅ Build réussi ! Les tests sont passés et le code a été poussé.'
+            echo '✅ Pipeline réussie ! Tests OK et code déployé sur main.'
         }
         failure {
-            echo '❌ Build échoué ! Les tests ont échoué, le code n\'a PAS été poussé.'
+            echo '❌ Pipeline échouée ! Tests KO - le code reste sur pending.'
         }
         always {
-            echo '🧹 Pipeline terminée'
+            echo '🧹 Nettoyage terminé'
         }
     }
 }
