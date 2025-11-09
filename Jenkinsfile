@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     triggers {
-        pollSCM('* * * * *')  // Vérifie toutes les minutes (minimum possible)
+        pollSCM('* * * * *')
     }
     
     environment {
@@ -55,11 +55,10 @@ pipeline {
         
         stage('Push to Main') {
             when {
-                allOf {
-                    branch 'pending'
-                    expression {
-                        currentBuild.result == null || currentBuild.result == 'SUCCESS'
-                    }
+                expression {
+                    // Vérifier qu'on est sur pending ET que les tests sont OK
+                    env.GIT_BRANCH == 'origin/pending' && 
+                    (currentBuild.result == null || currentBuild.result == 'SUCCESS')
                 }
             }
             steps {
@@ -67,7 +66,12 @@ pipeline {
                 sh '''
                     git config user.email "clementgaubert44@gmail.com"
                     git config user.name "Jenkins CI"
+                    
+                    echo "📍 Branche actuelle: $(git rev-parse --abbrev-ref HEAD)"
+                    echo "📍 Commit: $(git rev-parse HEAD)"
+                    
                     git push https://${GIT_CREDENTIALS_USR}:${GIT_CREDENTIALS_PSW}@github.com/gbtclement/todo-app.git HEAD:refs/heads/main
+                    
                     echo "✅ Code poussé sur main avec succès !"
                 '''
             }
