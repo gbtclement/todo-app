@@ -10,6 +10,7 @@ class TodoApp
         if (empty(trim($title))) {
             throw new InvalidArgumentException("Le titre ne peut pas être vide");
         }
+        
 
         $todo = [
             'id' => $this->nextId++,
