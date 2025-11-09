@@ -42,7 +42,7 @@ class TodoApp
     {
         foreach ($this->todos as &$todo) {
             if ($todo['id'] === $id) {
-                $todo['completed'] = false;
+                $todo['completed'] = true;
                 return true;
             }
         }
