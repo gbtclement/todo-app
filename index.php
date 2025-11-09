@@ -57,7 +57,7 @@ $stats = $todoApp->getStats();
 </head>
 <body>
     <div class="header">
-        <h1>📝 Simple Todo App</h1>
+        <h1>📝 Simple Todo App false</h1>
         <p>Application simple pour CI/CD Pipeline</p>
     </div>
 
