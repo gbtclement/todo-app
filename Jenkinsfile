@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     triggers {
-        pollSCM('H/2 * * * *')
+        pollSCM('* * * * *')
     }
     
     environment {
@@ -55,20 +55,30 @@ pipeline {
         
         stage('Push to Main') {
             when {
-                allOf {
-                    branch 'pending'
-                    expression {
-                        currentBuild.result == null || currentBuild.result == 'SUCCESS'
-                    }
+                expression {
+                    env.GIT_BRANCH == 'origin/pending' && 
+                    (currentBuild.result == null || currentBuild.result == 'SUCCESS')
                 }
             }
             steps {
-                echo '🚀 Tests OK ! Push vers main...'
+                echo '🚀 Tests OK ! Merge vers main...'
                 sh '''
                     git config user.email "clementgaubert44@gmail.com"
                     git config user.name "Jenkins CI"
-                    git push https://${GIT_CREDENTIALS_USR}:${GIT_CREDENTIALS_PSW}@github.com/gbtclement/todo-app.git HEAD:refs/heads/main
-                    echo "✅ Code poussé sur main avec succès !"
+                    
+                    # Récupérer les dernières infos
+                    git fetch origin main
+                    
+                    # Checkout main
+                    git checkout -B main origin/main
+                    
+                    # Merger pending dans main
+                    git merge origin/pending --no-ff -m "✅ Merge pending → main [Tests OK] [Build #${BUILD_NUMBER}]"
+                    
+                    # Push vers GitHub
+                    git push https://${GIT_CREDENTIALS_USR}:${GIT_CREDENTIALS_PSW}@github.com/gbtclement/todo-app.git main:main
+                    
+                    echo "✅ Code mergé et poussé sur main avec succès !"
                 '''
             }
         }
